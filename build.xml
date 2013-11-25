@@ -1,0 +1,36 @@
+<project name="Fiber" default="dist" basedir=".">
+  <property name="src" location="src"/>
+  <property name="build" location="build"/>
+  <property name="lib" location="lib"/>
+
+  <target name="get-deps">
+    <mkdir dir="${lib}"/>
+    <get src="http://www.matthiasmann.de/java/Continuations/2013/Continuations_full_2013-02-17_03-52.jar" dest="${lib}"/>
+    <get src="http://www.matthiasmann.de/java/Continuations/2013/Continuations_runtime_2013-02-17_03-52.jar" dest="${lib}"/>
+    <get src="http://central.maven.org/maven2/org/ow2/asm/asm-all/4.2/asm-all-4.2.jar" dest="${lib}/asm-all-4.2.jar"/>
+  </target>
+
+  <target name="init">
+    <mkdir dir="${build}"/>
+  </target>
+
+  <taskdef onerror="report" name="continuations"
+    classname="de.matthiasmann.continuations.instrument.InstrumentationTask"
+    classpath="${lib}/Continuations_full_2013-02-17_03-52.jar:${lib}/asm-all-4.2.jar"/>
+
+  <target name="compile" depends="init">
+    <javac srcdir="${src}" destdir="${build}" classpath="${lib}/Continuations_runtime_2013-02-17_03-52.jar"/>
+    <continuations verbose="true">
+        <fileset dir="${build}"/>
+    </continuations>
+  </target>
+
+  <target name="dist" depends="compile">
+    <jar jarfile="${lib}/Fiber.jar" basedir="${build}"/>
+  </target>
+
+  <target name="clean">
+    <delete dir="${build}"/>
+    <delete file="${lib}/Fiber.jar"/>
+  </target>
+</project>
