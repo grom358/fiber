@@ -27,6 +27,11 @@ public class FiberScheduler implements Runnable {
      */
     private BlockingQueue<Fiber> newFibers;
 
+    /**
+     * Fibers queued by other threads to be woken up by scheduler
+     */
+    private BlockingQueue<Fiber> wakeupFibers;
+
     private volatile boolean running;
 
     private volatile boolean joined;
@@ -37,6 +42,7 @@ public class FiberScheduler implements Runnable {
         activeFibers = new ArrayDeque<Fiber>(100);
         sleepingFibers = new PriorityQueue<Fiber>(100);
         newFibers = new ArrayBlockingQueue<Fiber>(100);
+        wakeupFibers = new ArrayBlockingQueue<Fiber>(100);
         schedulerThread = new Thread(this);
     }
 
@@ -65,8 +71,18 @@ public class FiberScheduler implements Runnable {
                 activeFibers.add(fiber);
             }
         } else {
-            // TODO Implement a message queue to notify scheduler of fibers to wakeup
-            throw new UnsupportedOperationException("Only fibers on same scheduler can wakeup each other");
+            boolean doJob = true;
+            while (doJob) {
+                try {
+                    wakeupFibers.put(fiber);
+                    // Wakeup the scheduler in case its waiting on sleeping fibers
+                    schedulerThread.interrupt();
+                    doJob = false;
+                } catch (InterruptedException ex) {
+                    // Ignore interrupt, and retry
+                }
+            }
+
         }
     }
 
@@ -91,6 +107,8 @@ public class FiberScheduler implements Runnable {
     @Override
     public void run() {
         while (running) {
+            Fiber fiber;
+
             // Move newly scheduled fibers to active queue
             newFibers.drainTo(activeFibers);
 
@@ -109,11 +127,18 @@ public class FiberScheduler implements Runnable {
                 continue;
             }
 
+            // Wake up fibers that have been queued to wakeup
+            while ((fiber = wakeupFibers.poll()) != null) {
+                if (sleepingFibers.remove(fiber)) {
+                    activeFibers.add(fiber);
+                }
+            }
+
             // Wake up all sleeping fibers with expired awakeTime
             if (!sleepingFibers.isEmpty()) {
                 long now = System.currentTimeMillis();
                 while (true) {
-                    Fiber fiber = sleepingFibers.peek();
+                    fiber = sleepingFibers.peek();
                     if (fiber != null && fiber.awakeTime <= now) {
                         // Wakeup fiber
                         activeFibers.add(sleepingFibers.poll());
@@ -124,7 +149,7 @@ public class FiberScheduler implements Runnable {
             }
             if (activeFibers.isEmpty()) {
                 // if there are no active threads, wait for next sleeping fiber to become active
-                Fiber fiber = sleepingFibers.peek();
+                fiber = sleepingFibers.peek();
                 if (fiber != null) {
                     long sleepTime = fiber.awakeTime - System.currentTimeMillis();
                     if (sleepTime > 0) {
@@ -138,7 +163,7 @@ public class FiberScheduler implements Runnable {
                 // Run active fibers
                 int n = activeFibers.size();
                 for (int i = 0; i < n; ++i) {
-                    Fiber fiber = activeFibers.poll();
+                    fiber = activeFibers.poll();
                     fiber.run();
                     if (fiber.isSuspended()) {
                         sleepingFibers.add(fiber);
