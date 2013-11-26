@@ -41,8 +41,17 @@ public class FiberCondition {
     /**
      * Register fiber to wait on the condition
      */
-    synchronized void registerWait(Fiber fiber, long waitDuration) throws SuspendExecution {
-        waitingFibers.add(fiber);
+    void registerWait(Fiber fiber, long waitDuration) throws SuspendExecution {
+        addFiber(fiber);
         fiber.sleep(waitDuration);
+    }
+
+    /**
+     * Add fiber to wait on this condition. This method is to workaround
+     * Continuation library limitation of suspendable methods not allowed
+     * to be synchronized
+     */
+    private synchronized void addFiber(Fiber fiber) {
+        waitingFibers.add(fiber);
     }
 }
