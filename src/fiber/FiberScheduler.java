@@ -46,6 +46,14 @@ public class FiberScheduler implements Runnable {
         schedulerThread = new Thread(this);
     }
 
+    public FiberCondition createCondition() {
+        return new FiberCondition(this);
+    }
+
+    public FiberLatch createLatch(int n) {
+        return new FiberLatch(this, n);
+    }
+
     public void start() {
         running = true;
         joined = false;
