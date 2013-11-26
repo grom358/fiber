@@ -15,7 +15,11 @@ public abstract class Fiber implements Comparable<Fiber>, CoroutineProto {
     final private Coroutine co = new Coroutine(this);
 
     final protected void sleep(long milliseconds) throws SuspendExecution {
-        awakeTime = System.currentTimeMillis() + milliseconds;
+        if (milliseconds == -1) {
+            awakeTime = Long.MAX_VALUE;
+        } else {
+            awakeTime = System.currentTimeMillis() + milliseconds;
+        }
         suspended = true;
         Coroutine.yield();
     }
@@ -33,7 +37,7 @@ public abstract class Fiber implements Comparable<Fiber>, CoroutineProto {
     }
 
     final protected void waitOn(FiberCondition condition) throws SuspendExecution {
-        waitOn(condition, Long.MAX_VALUE);
+        waitOn(condition, -1);
     }
 
     final protected void waitOn(FiberCondition condition, long waitDuration) throws SuspendExecution {
@@ -41,7 +45,7 @@ public abstract class Fiber implements Comparable<Fiber>, CoroutineProto {
     }
 
     final protected void waitOn(FiberLatch latch) throws SuspendExecution {
-        waitOn(latch, Long.MAX_VALUE);
+        waitOn(latch, -1);
     }
 
     final protected void waitOn(FiberLatch latch, long waitDuration) throws SuspendExecution {
