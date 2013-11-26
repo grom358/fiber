@@ -1,5 +1,6 @@
 package fiber;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import de.matthiasmann.continuations.SuspendExecution;
 
 /**
