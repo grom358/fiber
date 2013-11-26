@@ -61,6 +61,13 @@ public class FiberScheduler implements Runnable {
     }
 
     /**
+     * Returns true if the current thread is the scheduling thread
+     */
+    protected boolean isSchedulerThread() {
+        return Thread.currentThread() == schedulerThread;
+    }
+
+    /**
      * Creates a FiberCondition that belongs to this scheduler
      */
     public FiberCondition createCondition() {
@@ -105,7 +112,7 @@ public class FiberScheduler implements Runnable {
      * Wakeup a fiber interrupting sleep or waitOn
      */
     public void wakeup(Fiber fiber) {
-        if (Thread.currentThread() == schedulerThread) {
+        if (isSchedulerThread()) {
             // Fiber waking up another fiber
             if (sleepingFibers.remove(fiber)) {
                 activeFibers.add(fiber);
