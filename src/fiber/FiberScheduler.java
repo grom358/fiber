@@ -7,6 +7,8 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 /**
+ * The scheduler is responsible for handling the execution of fibers and for
+ * other threads to communicate with fibers.
  *
  * @author grom
  */
@@ -32,12 +34,24 @@ public class FiberScheduler implements Runnable {
      */
     private BlockingQueue<Fiber> wakeupFibers;
 
+    /**
+     * True if the scheduler should continue running
+     */
     private volatile boolean running;
 
+    /**
+     * True if another thread is joined to the scheduler thread
+     */
     private volatile boolean joined;
 
+    /**
+     * The thread the scheduler is running on
+     */
     final private Thread schedulerThread;
 
+    /**
+     * Creates instance of FiberScheduler
+     */
     public FiberScheduler() {
         activeFibers = new ArrayDeque<Fiber>(100);
         sleepingFibers = new PriorityQueue<Fiber>(100);
@@ -46,20 +60,32 @@ public class FiberScheduler implements Runnable {
         schedulerThread = new Thread(this);
     }
 
+    /**
+     * Creates a FiberCondition that belongs to this scheduler
+     */
     public FiberCondition createCondition() {
         return new FiberCondition(this);
     }
 
+    /**
+     * Creates a FiberLatch that belongs to this scheduler with the given count.
+     */
     public FiberLatch createLatch(int n) {
         return new FiberLatch(this, n);
     }
 
+    /**
+     * Start the scheduler
+     */
     public void start() {
         running = true;
         joined = false;
         schedulerThread.start();
     }
 
+    /**
+     * Join the scheduler thread waiting for all fibers to finish executing
+     */
     public void join() throws InterruptedException {
         joined = true;
         synchronized(schedulerThread) {
@@ -68,10 +94,16 @@ public class FiberScheduler implements Runnable {
         schedulerThread.join();
     }
 
+    /**
+     * Force the scheduler to shutdown now
+     */
     public void shutdownNow() {
         running = false;
     }
 
+    /**
+     * Wakeup a fiber interrupting sleep or waitOn
+     */
     public void wakeup(Fiber fiber) {
         if (Thread.currentThread() == schedulerThread) {
             // Fiber waking up another fiber
@@ -94,6 +126,9 @@ public class FiberScheduler implements Runnable {
         }
     }
 
+    /**
+     * Submit fiber for processing by the scheduler
+     */
     public void submit(Fiber fiber) {
         if (running) {
             boolean doJob = true;
