@@ -5,11 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Fiber version of java.util.concurrent.locks.Condition . The condition is not
- * thread safe and can only be used by fibers unning under the same scheduler.
- *
- * If other threads wish to signal the condition then can queue signal of
- * condition via the signal methods of FiberScheduler
+ * Fiber version of java.util.concurrent.locks.Condition
  *
  * @author grom
  */
@@ -35,7 +31,7 @@ public class FiberCondition {
     /**
      * Wakes up all waiting fibers.
      */
-    public void signalAll() {
+    public synchronized void signalAll() {
         for (Fiber fiber : waitingFibers) {
             scheduler.wakeup(fiber);
         }
@@ -45,7 +41,7 @@ public class FiberCondition {
     /**
      * Register fiber to wait on the condition
      */
-    void registerWait(Fiber fiber, long waitDuration) throws SuspendExecution {
+    synchronized void registerWait(Fiber fiber, long waitDuration) throws SuspendExecution {
         waitingFibers.add(fiber);
         fiber.sleep(waitDuration);
     }

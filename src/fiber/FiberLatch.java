@@ -3,8 +3,7 @@ package fiber;
 import de.matthiasmann.continuations.SuspendExecution;
 
 /**
- * Fiber version of java.util.concurrent.CountDownLatch . The latch is not
- * thread safe and can only be used by fibers running under the same scheduler.
+ * Fiber version of java.util.concurrent.CountDownLatch
  *
  * @author grom
  */
@@ -17,22 +16,22 @@ public class FiberLatch {
     /**
      * Count down counter for release of latch
      */
-    private int counter;
+    private AtomicInteger counter;
 
     /**
      * Create instance of FiberLatch with parent scheduler and given latch count.
      */
     protected FiberLatch(FiberScheduler scheduler, int counter) {
         this.condition = new FiberCondition(scheduler);
-        this.counter = counter;
+        this.counter = new AtomicInteger(counter);
     }
 
     /**
      * Decrements the count of the latch, releasing all waiting fibers if the count reaches zero.
      */
     public void countDown() {
-        counter--;
-        if (counter == 0) {
+        int c = counter.decrementAndGet();
+        if (c == 0) {
             condition.signalAll();
         }
     }
